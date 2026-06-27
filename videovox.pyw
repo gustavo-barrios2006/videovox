@@ -214,13 +214,17 @@ class EditFrame(wx.Frame):
             if fim_audio_str and not self.parent.validar_numero(fim_audio_str):
                 wx.MessageBox("Fim do Áudio deve ser um número ou vazio.", "Erro")
                 return
-            if not self.parent.validar_numero(pos_video_str):
-                wx.MessageBox("Início no vídeo deve ser um número.", "Erro")
+            if pos_video_str and not self.parent.validar_numero(pos_video_str):
+                wx.MessageBox("Início no vídeo deve ser um número ou vazio.", "Erro")
                 return
 
             inicio = float(inicio_audio_str)
             fim = float(fim_audio_str) if fim_audio_str else None
-            pos = float(pos_video_str)
+            pos = float(pos_video_str) if pos_video_str else None
+
+            if pos is not None and pos < 0:
+                wx.MessageBox("O início no vídeo não pode ser negativo.", "Erro")
+                return
 
             if fim is not None and inicio >= fim:
                 wx.MessageBox("O início do áudio deve ser menor que o fim.", "Erro")
@@ -394,7 +398,7 @@ class MainFrame(wx.Frame):
         lbl_audio_fim = wx.StaticText(painel, label="&Fim do Áudio (seg):")
         self.txt_audio_fim = wx.TextCtrl(painel, value="")
         lbl_video_pos = wx.StaticText(painel, label="Início no &Vídeo (seg):")
-        self.txt_video_pos = wx.TextCtrl(painel, value="0")
+        self.txt_video_pos = wx.TextCtrl(painel, value="")
 
         linha_audio_tempos.Add(lbl_audio_inicio, 0, wx.ALL | wx.CENTER, 5)
         linha_audio_tempos.Add(self.txt_audio_inicio, 1, wx.ALL, 5)
@@ -671,7 +675,8 @@ class MainFrame(wx.Frame):
         for info in self.audios:
             nome = os.path.basename(info["arquivo"])
             fim_desc = f"{info['fim']}s" if info['fim'] is not None else "Fim"
-            self.lista_audio.Append(f"{nome} ({info['inicio']}s-{fim_desc}) em {info['pos']}s no vídeo")
+            pos_desc = f"{info['pos']}s" if info['pos'] is not None else "sequência"
+            self.lista_audio.Append(f"{nome} ({info['inicio']}s-{fim_desc}) em {pos_desc} no vídeo")
 
     def on_editar_midia(self, event):
         indice = self.lista.GetSelection()
@@ -1156,27 +1161,31 @@ class MainFrame(wx.Frame):
         if fim_audio_str and not self.validar_numero(fim_audio_str):
             wx.MessageBox("Fim do Áudio deve ser um número ou vazio.", "Erro")
             return
-        if not self.validar_numero(pos_video_str):
-            wx.MessageBox("Início no vídeo deve ser um número.", "Erro")
+        if pos_video_str and not self.validar_numero(pos_video_str):
+            wx.MessageBox("Início no vídeo deve ser um número ou vazio.", "Erro")
+            return
+
+        pos_video = float(pos_video_str) if pos_video_str else None
+
+        if pos_video is not None and pos_video < 0:
+            wx.MessageBox("O início no vídeo não pode ser negativo.", "Erro")
             return
 
         info = {
             "arquivo": caminho,
             "inicio": float(inicio_audio_str),
             "fim": float(fim_audio_str) if fim_audio_str else None,
-            "pos": float(pos_video_str)
+            "pos": pos_video
         }
         
         self.audios.append(info)
-        nome = os.path.basename(caminho)
-        fim_desc = f"{info['fim']}s" if info['fim'] is not None else "Fim"
-        self.lista_audio.Append(f"{nome} ({info['inicio']}s-{fim_desc}) em {info['pos']}s no vídeo")
+        self.atualizar_lista_audios()
 
         # Limpar campos apos adicionar
         self.txt_audio.Clear()
         self.txt_audio_inicio.SetValue("0")
         self.txt_audio_fim.Clear()
-        self.txt_video_pos.SetValue("0")
+        self.txt_video_pos.Clear()
 
     def on_gerar_video_final(self, event):
         if not self.video_atual:
@@ -1219,6 +1228,7 @@ class MainFrame(wx.Frame):
                 if video.audio is not None:
                     clips_audio.append(video.audio)
 
+                posicao_atual = 0
                 for item in audios:
                     audio = AudioFileClip(item["arquivo"])
                     audio_clips_abertos.append(audio)
@@ -1228,10 +1238,17 @@ class MainFrame(wx.Frame):
                     
                     # Recortar e posicionar
                     recorte = audio.subclipped(t_inicio, min(t_fim, audio.duration))
-                    posicionado = recorte.with_start(item["pos"])
+                    
+                    if item["pos"] is not None:
+                        pos_video = item["pos"]
+                    else:
+                        pos_video = posicao_atual
+                    
+                    posicionado = recorte.with_start(pos_video)
                     
                     clips_audio.append(posicionado)
-                    duracao_audio_total = max(duracao_audio_total, item["pos"] + recorte.duration)
+                    duracao_audio_total = max(duracao_audio_total, pos_video + recorte.duration)
+                    posicao_atual = pos_video + recorte.duration
 
                 audio_final = CompositeAudioClip(clips_audio).with_duration(duracao_audio_total)
                 video_final = video.with_audio(audio_final)
