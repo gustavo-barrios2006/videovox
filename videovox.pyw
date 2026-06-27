@@ -672,10 +672,24 @@ class MainFrame(wx.Frame):
 
     def atualizar_lista_audios(self):
         self.lista_audio.Clear()
+        posicao_atual = 0
         for info in self.audios:
             nome = os.path.basename(info["arquivo"])
             fim_desc = f"{info['fim']}s" if info['fim'] is not None else "Fim"
-            pos_desc = f"{info['pos']}s" if info['pos'] is not None else "sequência"
+            
+            if info["pos"] is not None:
+                pos_calculada = info["pos"]
+            else:
+                pos_calculada = posicao_atual
+            
+            duracao_recorte = self.obter_duracao_recorte_audio(info)
+            posicao_atual = pos_calculada + duracao_recorte
+            
+            if info["pos"] is not None:
+                pos_desc = f"{pos_calculada}s"
+            else:
+                pos_desc = f"{pos_calculada}s (sequência)"
+            
             self.lista_audio.Append(f"{nome} ({info['inicio']}s-{fim_desc}) em {pos_desc} no vídeo")
 
     def on_editar_midia(self, event):
@@ -885,6 +899,21 @@ class MainFrame(wx.Frame):
             return item["fim"] - item["inicio"]
 
         return item["duracao"]
+
+    def obter_duracao_recorte_audio(self, item):
+        duracao_original = item.get("duracao_original")
+        if duracao_original is None:
+            try:
+                audio = AudioFileClip(item["arquivo"])
+                duracao_original = audio.duration
+                audio.close()
+                item["duracao_original"] = duracao_original
+            except Exception:
+                duracao_original = 0.0
+
+        t_inicio = item["inicio"]
+        t_fim = item["fim"] if item["fim"] is not None else duracao_original
+        return max(0.0, min(t_fim, duracao_original) - t_inicio)
 
     def atualizar_lista_midias(self):
         self.lista.Clear()
@@ -1171,11 +1200,20 @@ class MainFrame(wx.Frame):
             wx.MessageBox("O início no vídeo não pode ser negativo.", "Erro")
             return
 
+        try:
+            audio = AudioFileClip(caminho)
+            duracao_original = audio.duration
+            audio.close()
+        except Exception as e:
+            wx.MessageBox(f"Não foi possível abrir o áudio: {e}", "Erro")
+            return
+
         info = {
             "arquivo": caminho,
             "inicio": float(inicio_audio_str),
             "fim": float(fim_audio_str) if fim_audio_str else None,
-            "pos": pos_video
+            "pos": pos_video,
+            "duracao_original": duracao_original
         }
         
         self.audios.append(info)
