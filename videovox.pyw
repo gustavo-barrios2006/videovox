@@ -55,18 +55,18 @@ class EditFrame(wx.Frame):
             fields = [
                 ("inicio", "Início no vídeo original (seg):"),
                 ("fim", "Fim no vídeo original (seg):"),
-                ("inicio_destino", "Inicio no video destino (seg):")
+                ("inicio_destino", "Início no vídeo destino (seg):")
             ]
         elif self.item_type == "imagem":
             fields = [
                 ("duracao", "Duração (segundos):"),
-                ("inicio_destino", "Inicio no video destino (seg):")
+                ("inicio_destino", "Início no vídeo destino (seg):")
             ]
         elif self.item_type == "audio":
             fields = [
                 ("inicio", "Início do áudio (seg):"),
                 ("fim", "Fim do áudio (seg):"),
-                ("pos", "Inicio no Vídeo (seg):")
+                ("pos", "Início no Vídeo (seg):")
             ]
 
         for key, label_text in fields:
@@ -127,15 +127,15 @@ class EditFrame(wx.Frame):
             destino_str = self.inputs["inicio_destino"].GetValue().strip()
 
             if not self.parent.validar_numero(inicio_str):
-                wx.MessageBox("O inicio do video deve ser um numero.", "Erro")
+                wx.MessageBox("O início do vídeo deve ser um número.", "Erro")
                 return
 
             if fim_str and not self.parent.validar_numero(fim_str):
-                wx.MessageBox("O fim do video deve ser um numero ou vazio.", "Erro")
+                wx.MessageBox("O fim do vídeo deve ser um número ou vazio.", "Erro")
                 return
 
             if destino_str and not self.parent.validar_numero(destino_str):
-                wx.MessageBox("O inicio no video destino deve ser um numero ou vazio.", "Erro")
+                wx.MessageBox("O início no vídeo destino deve ser um número ou vazio.", "Erro")
                 return
 
             inicio = float(inicio_str)
@@ -147,30 +147,30 @@ class EditFrame(wx.Frame):
                 duracao_video = video.duration
                 video.close()
             except Exception as e:
-                wx.MessageBox(f"Nao foi possivel abrir o video: {e}", "Erro")
+                wx.MessageBox(f"Não foi possível abrir o vídeo: {e}", "Erro")
                 return
 
             if inicio >= duracao_video:
-                wx.MessageBox("O inicio deve ser menor que a duracao do video.", "Erro")
+                wx.MessageBox("O início deve ser menor que a duração do vídeo.", "Erro")
                 return
 
             if inicio < 0:
-                wx.MessageBox("O inicio do video nao pode ser negativo.", "Erro")
+                wx.MessageBox("O início do vídeo não pode ser negativo.", "Erro")
                 return
 
             if fim is None:
                 fim = duracao_video
 
             if inicio >= fim:
-                wx.MessageBox("O inicio deve ser menor que o fim.", "Erro")
+                wx.MessageBox("O início deve ser menor que o fim.", "Erro")
                 return
 
             if fim > duracao_video:
-                wx.MessageBox("O fim deve ser menor ou igual a duracao do video.", "Erro")
+                wx.MessageBox("O fim deve ser menor ou igual à duração do vídeo.", "Erro")
                 return
 
             if inicio_destino is not None and inicio_destino < 0:
-                wx.MessageBox("O inicio no video destino nao pode ser negativo.", "Erro")
+                wx.MessageBox("O início no vídeo destino não pode ser negativo.", "Erro")
                 return
 
             self.item["inicio"] = inicio
@@ -182,22 +182,22 @@ class EditFrame(wx.Frame):
             destino_str = self.inputs["inicio_destino"].GetValue().strip()
 
             if not self.parent.validar_numero(tempo):
-                wx.MessageBox("Informe apenas um numero inteiro ou real.", "Erro")
+                wx.MessageBox("Informe apenas um número inteiro ou real.", "Erro")
                 return
 
             if destino_str and not self.parent.validar_numero(destino_str):
-                wx.MessageBox("O inicio no video destino deve ser um numero ou vazio.", "Erro")
+                wx.MessageBox("O início no vídeo destino deve ser um número ou vazio.", "Erro")
                 return
 
             duracao = float(tempo)
             inicio_destino = float(destino_str) if destino_str else None
 
             if duracao <= 0:
-                wx.MessageBox("A duracao deve ser maior que zero.", "Erro")
+                wx.MessageBox("A duração deve ser maior que zero.", "Erro")
                 return
 
             if inicio_destino is not None and inicio_destino < 0:
-                wx.MessageBox("O inicio no video destino nao pode ser negativo.", "Erro")
+                wx.MessageBox("O início no vídeo destino não pode ser negativo.", "Erro")
                 return
 
             self.item["duracao"] = duracao
@@ -209,13 +209,13 @@ class EditFrame(wx.Frame):
             pos_video_str = self.inputs["pos"].GetValue().strip()
 
             if not self.parent.validar_numero(inicio_audio_str):
-                wx.MessageBox("Inicio do Áudio deve ser um numero.", "Erro")
+                wx.MessageBox("Início do Áudio deve ser um número.", "Erro")
                 return
             if fim_audio_str and not self.parent.validar_numero(fim_audio_str):
-                wx.MessageBox("Fim do Áudio deve ser um numero ou vazio.", "Erro")
+                wx.MessageBox("Fim do Áudio deve ser um número ou vazio.", "Erro")
                 return
             if not self.parent.validar_numero(pos_video_str):
-                wx.MessageBox("Inicio no video deve ser um numero.", "Erro")
+                wx.MessageBox("Início no vídeo deve ser um número.", "Erro")
                 return
 
             inicio = float(inicio_audio_str)
@@ -223,7 +223,7 @@ class EditFrame(wx.Frame):
             pos = float(pos_video_str)
 
             if fim is not None and inicio >= fim:
-                wx.MessageBox("O inicio do áudio deve ser menor que o fim.", "Erro")
+                wx.MessageBox("O início do áudio deve ser menor que o fim.", "Erro")
                 return
 
             self.item["inicio"] = inicio
@@ -244,7 +244,7 @@ class MainFrame(wx.Frame):
     def __init__(self):
         super().__init__(
             None,
-            title="Editor e Criador de Videos",
+            title="Editor e Criador de Vídeos",
             size=(800, 700)
         )
 
@@ -286,7 +286,7 @@ class MainFrame(wx.Frame):
         # Aba 2: Editar Video
         self.aba_editar = wx.Panel(self.notebook)
         self.setup_aba_editar()
-        self.notebook.AddPage(self.aba_editar, "&Editar Video")
+        self.notebook.AddPage(self.aba_editar, "&Editar Vídeo")
 
         self.Centre()
 
@@ -308,14 +308,14 @@ class MainFrame(wx.Frame):
         linha_tempo = wx.BoxSizer(wx.HORIZONTAL)
         lbl_tempo = wx.StaticText(painel, label="&Duração (segundos):")
         self.txt_tempo = wx.TextCtrl(painel)
-        lbl_imagem_destino = wx.StaticText(painel, label="Inicio no video destino (seg):")
+        lbl_imagem_destino = wx.StaticText(painel, label="Início no vídeo destino (seg):")
         self.txt_imagem_destino = wx.TextCtrl(painel)
         linha_tempo.Add(lbl_tempo, 0, wx.ALL | wx.CENTER, 5)
         linha_tempo.Add(self.txt_tempo, 1, wx.ALL, 5)
         linha_tempo.Add(lbl_imagem_destino, 0, wx.ALL | wx.CENTER, 5)
         linha_tempo.Add(self.txt_imagem_destino, 1, wx.ALL, 5)
         
-        self.btn_adicionar = wx.Button(painel, label="&Adicionar a Lista")
+        self.btn_adicionar = wx.Button(painel, label="&Adicionar à Lista")
         linha_tempo.Add(self.btn_adicionar, 0, wx.ALL, 5)
         sizer_principal.Add(linha_tempo, 0, wx.EXPAND)
 
@@ -335,7 +335,7 @@ class MainFrame(wx.Frame):
         self.txt_video_inicio_fluxo = wx.TextCtrl(painel, value="0")
         lbl_video_fim_fluxo = wx.StaticText(painel, label="Fim no vídeo original (seg):")
         self.txt_video_fim_fluxo = wx.TextCtrl(painel)
-        lbl_video_destino_fluxo = wx.StaticText(painel, label="Inicio no video destino (seg):")
+        lbl_video_destino_fluxo = wx.StaticText(painel, label="Início no vídeo destino (seg):")
         self.txt_video_destino_fluxo = wx.TextCtrl(painel)
 
         linha_video_tempos.Add(lbl_video_inicio_fluxo, 0, wx.ALL | wx.CENTER, 5)
@@ -345,7 +345,7 @@ class MainFrame(wx.Frame):
         linha_video_tempos.Add(lbl_video_destino_fluxo, 0, wx.ALL | wx.CENTER, 5)
         linha_video_tempos.Add(self.txt_video_destino_fluxo, 1, wx.ALL, 5)
 
-        self.btn_adicionar_video_fluxo = wx.Button(painel, label="Adicionar Video a Lista")
+        self.btn_adicionar_video_fluxo = wx.Button(painel, label="Adicionar Vídeo à Lista")
         linha_video_tempos.Add(self.btn_adicionar_video_fluxo, 0, wx.ALL, 5)
         sizer_principal.Add(linha_video_tempos, 0, wx.EXPAND)
 
@@ -393,7 +393,7 @@ class MainFrame(wx.Frame):
         self.txt_audio_inicio = wx.TextCtrl(painel, value="0")
         lbl_audio_fim = wx.StaticText(painel, label="&Fim do Áudio (seg):")
         self.txt_audio_fim = wx.TextCtrl(painel, value="")
-        lbl_video_pos = wx.StaticText(painel, label="Inicio no &Vídeo (seg):")
+        lbl_video_pos = wx.StaticText(painel, label="Início no &Vídeo (seg):")
         self.txt_video_pos = wx.TextCtrl(painel, value="0")
 
         linha_audio_tempos.Add(lbl_audio_inicio, 0, wx.ALL | wx.CENTER, 5)
@@ -405,7 +405,7 @@ class MainFrame(wx.Frame):
         sizer_audio.Add(linha_audio_tempos, 0, wx.EXPAND)
 
         # 4. Botao de adicionar Áudio
-        self.btn_add_audio = wx.Button(painel, label="&Adicionar Áudio a Lista")
+        self.btn_add_audio = wx.Button(painel, label="&Adicionar Áudio à Lista")
         sizer_audio.Add(self.btn_add_audio, 0, wx.ALL | wx.CENTER, 5)
 
         # 5. Lista de Áudios
@@ -428,7 +428,7 @@ class MainFrame(wx.Frame):
         linha_final = wx.BoxSizer(wx.HORIZONTAL)
         self.btn_carregar_projeto = wx.Button(painel, label="Carregar &Projeto")
         self.btn_salvar_projeto = wx.Button(painel, label="Salvar P&rojeto")
-        self.btn_salvar_video = wx.Button(painel, label="&Salvar Video Base")
+        self.btn_salvar_video = wx.Button(painel, label="&Salvar Vídeo Base")
         self.btn_gerar_final = wx.Button(painel, label="Gerar Vídeo &Final (Com Áudios)")
         linha_final.Add(self.btn_carregar_projeto, 0, wx.ALL, 5)
         linha_final.Add(self.btn_salvar_projeto, 0, wx.ALL, 5)
@@ -462,20 +462,20 @@ class MainFrame(wx.Frame):
 
         # Selecao de Video
         linha_arq = wx.BoxSizer(wx.HORIZONTAL)
-        lbl_video = wx.StaticText(painel, label="&Video para Editar:")
+        lbl_video = wx.StaticText(painel, label="&Vídeo para Editar:")
         self.txt_video_editar = wx.TextCtrl(painel, style=wx.TE_READONLY)
-        self.btn_abrir_video = wx.Button(painel, label="&Abrir Video")
+        self.btn_abrir_video = wx.Button(painel, label="&Abrir Vídeo")
         linha_arq.Add(lbl_video, 0, wx.ALL | wx.CENTER, 5)
         linha_arq.Add(self.txt_video_editar, 1, wx.EXPAND | wx.ALL, 5)
         linha_arq.Add(self.btn_abrir_video, 0, wx.ALL, 5)
         sizer.Add(linha_arq, 0, wx.EXPAND)
 
         # Controles de Corte
-        box_corte = wx.StaticBox(painel, label="Definir Pedaco para Remover")
+        box_corte = wx.StaticBox(painel, label="Definir Pedaço para Remover")
         sizer_corte = wx.StaticBoxSizer(box_corte, wx.VERTICAL)
         
         linha_tempos = wx.BoxSizer(wx.HORIZONTAL)
-        lbl_inicio = wx.StaticText(painel, label="&Inicio (seg):")
+        lbl_inicio = wx.StaticText(painel, label="&Início (seg):")
         self.txt_inicio_corte = wx.TextCtrl(painel)
         lbl_fim = wx.StaticText(painel, label="&Fim (seg):")
         self.txt_fim_corte = wx.TextCtrl(painel)
@@ -499,7 +499,7 @@ class MainFrame(wx.Frame):
         # Configuracoes de Qualidade
         linha_qualidade = wx.BoxSizer(wx.HORIZONTAL)
         lbl_qualidade = wx.StaticText(painel, label="&Qualidade:")
-        self.choice_qualidade = wx.Choice(painel, choices=["Alta (Lento / Arquivo Menor)", "Media", "Baixa (Rapido / Arquivo Maior)"])
+        self.choice_qualidade = wx.Choice(painel, choices=["Alta (Lento / Arquivo Menor)", "Média", "Baixa (Rápido / Arquivo Maior)"])
         self.choice_qualidade.SetSelection(1) # Media por padrao
         linha_qualidade.Add(lbl_qualidade, 0, wx.ALL | wx.CENTER, 5)
         linha_qualidade.Add(self.choice_qualidade, 1, wx.ALL, 5)
@@ -525,7 +525,7 @@ class MainFrame(wx.Frame):
         with wx.FileDialog(
             self,
             "Selecione um vídeo",
-            wildcard="Videos (*.mp4;*.avi;*.mkv;*.mov)|*.mp4;*.avi;*.mkv;*.mov",
+            wildcard="Vídeos (*.mp4;*.avi;*.mkv;*.mov)|*.mp4;*.avi;*.mkv;*.mov",
             style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST
         ) as dlg:
             if dlg.ShowModal() == wx.ID_OK:
@@ -537,25 +537,25 @@ class MainFrame(wx.Frame):
 
     def on_adicionar_corte(self, event):
         if not self.video_para_editar:
-            wx.MessageBox("Abra um video primeiro.", "Erro")
+            wx.MessageBox("Abra um vídeo primeiro.", "Erro")
             return
 
         inicio_str = self.txt_inicio_corte.GetValue().strip()
         fim_str = self.txt_fim_corte.GetValue().strip()
 
         if not self.validar_numero(inicio_str) or not self.validar_numero(fim_str):
-            wx.MessageBox("Informe tempos validos (numeros).", "Erro")
+            wx.MessageBox("Informe tempos válidos (números).", "Erro")
             return
 
         inicio = float(inicio_str)
         fim = float(fim_str)
 
         if inicio >= fim:
-            wx.MessageBox("O inicio deve ser menor que o fim.", "Erro")
+            wx.MessageBox("O início deve ser menor que o fim.", "Erro")
             return
 
         self.cortes.append((inicio, fim))
-        self.lista_cortes.Append(f"Remover de {inicio}s ate {fim}s")
+        self.lista_cortes.Append(f"Remover de {inicio}s até {fim}s")
         self.txt_inicio_corte.Clear()
         self.txt_fim_corte.Clear()
 
@@ -567,7 +567,7 @@ class MainFrame(wx.Frame):
 
     def on_processar_cortes(self, event):
         if not self.video_para_editar:
-            wx.MessageBox("Nenhum video selecionado.", "Erro")
+            wx.MessageBox("Nenhum vídeo selecionado.", "Erro")
             return
 
         qualidade_idx = self.choice_qualidade.GetSelection()
@@ -581,7 +581,7 @@ class MainFrame(wx.Frame):
 
         with wx.FileDialog(
             self,
-            "Salvar video editado",
+            "Salvar vídeo editado",
             wildcard="MP4 (*.mp4)|*.mp4",
             style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT
         ) as dlg:
@@ -616,7 +616,7 @@ class MainFrame(wx.Frame):
                     mantidos.append((atual, duracao_total))
                 
                 if not mantidos:
-                    wx.CallAfter(wx.MessageBox, "O video resultante ficaria vazio!", "Erro")
+                    wx.CallAfter(wx.MessageBox, "O vídeo resultante ficaria vazio!", "Erro")
                     video.close()
                     return
 
@@ -640,7 +640,7 @@ class MainFrame(wx.Frame):
                     c.close()
                 video.close()
 
-                wx.CallAfter(self.finalizar_processamento, True, "Video processado com sucesso.")
+                wx.CallAfter(self.finalizar_processamento, True, "Vídeo processado com sucesso.")
 
             except Exception as e:
                 wx.CallAfter(self.finalizar_processamento, False, str(e))
@@ -671,7 +671,7 @@ class MainFrame(wx.Frame):
         for info in self.audios:
             nome = os.path.basename(info["arquivo"])
             fim_desc = f"{info['fim']}s" if info['fim'] is not None else "Fim"
-            self.lista_audio.Append(f"{nome} ({info['inicio']}s-{fim_desc}) em {info['pos']}s no video")
+            self.lista_audio.Append(f"{nome} ({info['inicio']}s-{fim_desc}) em {info['pos']}s no vídeo")
 
     def on_editar_midia(self, event):
         indice = self.lista.GetSelection()
@@ -713,8 +713,8 @@ class MainFrame(wx.Frame):
     def on_procurar_video_fluxo(self, event):
         with wx.FileDialog(
             self,
-            "Selecione um video",
-            wildcard="Videos (*.mp4;*.avi;*.mkv;*.mov)|*.mp4;*.avi;*.mkv;*.mov",
+            "Selecione um vídeo",
+            wildcard="Vídeos (*.mp4;*.avi;*.mkv;*.mov)|*.mp4;*.avi;*.mkv;*.mov",
             style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST
         ) as dlg:
             if dlg.ShowModal() == wx.ID_OK:
@@ -742,14 +742,14 @@ class MainFrame(wx.Frame):
 
         if not self.validar_numero(tempo):
             wx.MessageBox(
-                "Informe apenas um numero inteiro ou real.",
+                "Informe apenas um número inteiro ou real.",
                 "Erro"
             )
             return
 
         if destino_str and not self.validar_numero(destino_str):
             wx.MessageBox(
-                "O inicio no video destino deve ser um numero ou vazio.",
+                "O início no vídeo destino deve ser um número ou vazio.",
                 "Erro"
             )
             return
@@ -759,14 +759,14 @@ class MainFrame(wx.Frame):
 
         if duracao <= 0:
             wx.MessageBox(
-                "A duracao deve ser maior que zero.",
+                "A duração deve ser maior que zero.",
                 "Erro"
             )
             return
 
         if inicio_destino is not None and inicio_destino < 0:
             wx.MessageBox(
-                "O inicio no video destino nao pode ser negativo.",
+                "O início no vídeo destino não pode ser negativo.",
                 "Erro"
             )
             return
@@ -793,7 +793,7 @@ class MainFrame(wx.Frame):
         destino_str = self.txt_video_destino_fluxo.GetValue().strip()
 
         if not caminho:
-            wx.MessageBox("Selecione um video.", "Erro")
+            wx.MessageBox("Selecione um vídeo.", "Erro")
             return
 
         if not os.path.exists(caminho):
@@ -801,15 +801,15 @@ class MainFrame(wx.Frame):
             return
 
         if not self.validar_numero(inicio_str):
-            wx.MessageBox("O inicio do video deve ser um numero.", "Erro")
+            wx.MessageBox("O início do vídeo deve ser um número.", "Erro")
             return
 
         if fim_str and not self.validar_numero(fim_str):
-            wx.MessageBox("O fim do video deve ser um numero ou vazio.", "Erro")
+            wx.MessageBox("O fim do vídeo deve ser um número ou vazio.", "Erro")
             return
 
         if destino_str and not self.validar_numero(destino_str):
-            wx.MessageBox("O inicio no video destino deve ser um numero ou vazio.", "Erro")
+            wx.MessageBox("O início no vídeo destino deve ser um número ou vazio.", "Erro")
             return
 
         inicio = float(inicio_str)
@@ -821,30 +821,30 @@ class MainFrame(wx.Frame):
             duracao_video = video.duration
             video.close()
         except Exception as e:
-            wx.MessageBox(f"Nao foi possivel abrir o video: {e}", "Erro")
+            wx.MessageBox(f"Não foi possível abrir o vídeo: {e}", "Erro")
             return
 
         if inicio >= duracao_video:
-            wx.MessageBox("O inicio deve ser menor que a duracao do video.", "Erro")
+            wx.MessageBox("O início deve ser menor que a duração do vídeo.", "Erro")
             return
 
         if inicio < 0:
-            wx.MessageBox("O inicio do video nao pode ser negativo.", "Erro")
+            wx.MessageBox("O início do vídeo não pode ser negativo.", "Erro")
             return
 
         if fim is None:
             fim = duracao_video
 
         if inicio >= fim:
-            wx.MessageBox("O inicio deve ser menor que o fim.", "Erro")
+            wx.MessageBox("O início deve ser menor que o fim.", "Erro")
             return
 
         if fim > duracao_video:
-            wx.MessageBox("O fim deve ser menor ou igual a duracao do video.", "Erro")
+            wx.MessageBox("O fim deve ser menor ou igual à duração do vídeo.", "Erro")
             return
 
         if inicio_destino is not None and inicio_destino < 0:
-            wx.MessageBox("O inicio no video destino nao pode ser negativo.", "Erro")
+            wx.MessageBox("O início no vídeo destino não pode ser negativo.", "Erro")
             return
 
         self.imagens.append(
@@ -1047,7 +1047,7 @@ class MainFrame(wx.Frame):
         if not self.imagens:
 
             wx.MessageBox(
-                "Nenhuma midia adicionada.",
+                "Nenhuma mídia adicionada.",
                 "Erro"
             )
 
@@ -1055,7 +1055,7 @@ class MainFrame(wx.Frame):
 
         with wx.FileDialog(
             self,
-            "Salvar video",
+            "Salvar vídeo",
             wildcard="MP4 (*.mp4)|*.mp4",
             style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT
         ) as dlg:
@@ -1089,7 +1089,7 @@ class MainFrame(wx.Frame):
                     self.finalizar_salvar_video,
                     True,
                     destino,
-                    "Video criado com sucesso."
+                    "Vídeo criado com sucesso."
                 )
             except Exception as e:
                 import traceback
@@ -1147,17 +1147,17 @@ class MainFrame(wx.Frame):
             return
         
         if not os.path.exists(caminho):
-            wx.MessageBox("O arquivo de Áudio nao existe.", "Erro")
+            wx.MessageBox("O arquivo de Áudio não existe.", "Erro")
             return
 
         if not self.validar_numero(inicio_audio_str):
-            wx.MessageBox("Inicio do Áudio deve ser um numero.", "Erro")
+            wx.MessageBox("Início do Áudio deve ser um número.", "Erro")
             return
         if fim_audio_str and not self.validar_numero(fim_audio_str):
-            wx.MessageBox("Fim do Áudio deve ser um numero ou vazio.", "Erro")
+            wx.MessageBox("Fim do Áudio deve ser um número ou vazio.", "Erro")
             return
         if not self.validar_numero(pos_video_str):
-            wx.MessageBox("Inicio no video deve ser um numero.", "Erro")
+            wx.MessageBox("Início no vídeo deve ser um número.", "Erro")
             return
 
         info = {
@@ -1170,7 +1170,7 @@ class MainFrame(wx.Frame):
         self.audios.append(info)
         nome = os.path.basename(caminho)
         fim_desc = f"{info['fim']}s" if info['fim'] is not None else "Fim"
-        self.lista_audio.Append(f"{nome} ({info['inicio']}s-{fim_desc}) em {info['pos']}s no video")
+        self.lista_audio.Append(f"{nome} ({info['inicio']}s-{fim_desc}) em {info['pos']}s no vídeo")
 
         # Limpar campos apos adicionar
         self.txt_audio.Clear()
@@ -1180,16 +1180,16 @@ class MainFrame(wx.Frame):
 
     def on_gerar_video_final(self, event):
         if not self.video_atual:
-            wx.MessageBox("Salve um video sem as mixagens primeiro.", "Erro")
+            wx.MessageBox("Salve um vídeo sem as mixagens primeiro.", "Erro")
             return
         
         if not self.audios:
-            wx.MessageBox("Adicione pelo menos um Áudio a lista.", "Erro")
+            wx.MessageBox("Adicione pelo menos um Áudio à lista.", "Erro")
             return
 
         with wx.FileDialog(
             self,
-            "Salvar video final",
+            "Salvar vídeo final",
             wildcard="MP4 (*.mp4)|*.mp4",
             style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT
         ) as dlg:
@@ -1252,7 +1252,7 @@ class MainFrame(wx.Frame):
                 for audio in audio_clips_abertos:
                     audio.close()
 
-                wx.CallAfter(self.finalizar_gerar_video, True, "Video final com mixagem concluido!")
+                wx.CallAfter(self.finalizar_gerar_video, True, "Vídeo final com mixagem concluído!")
 
             except Exception as e:
                 wx.CallAfter(self.finalizar_gerar_video, False, str(e))
@@ -1302,13 +1302,13 @@ class MainFrame(wx.Frame):
 
     def on_salvar_projeto(self, event):
         if not self.imagens and not self.audios:
-            wx.MessageBox("O projeto esta vazio. Adicione midias ou audios antes de salvar.", "Aviso")
+            wx.MessageBox("O projeto está vazio. Adicione mídias ou áudios antes de salvar.", "Aviso")
             return
 
         with wx.FileDialog(
             self,
             "Salvar projeto",
-            wildcard="Projeto de Video (*.wvp)|*.wvp",
+            wildcard="Projeto de Vídeo (*.wvp)|*.wvp",
             style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT
         ) as dlg:
             if dlg.ShowModal() != wx.ID_OK:
@@ -1330,10 +1330,10 @@ class MainFrame(wx.Frame):
                 # Check if all files exist
                 for item in self.imagens:
                     if not os.path.exists(item["arquivo"]):
-                        raise FileNotFoundError(f"Arquivo nao encontrado: {item['arquivo']}")
+                        raise FileNotFoundError(f"Arquivo não encontrado: {item['arquivo']}")
                 for item in self.audios:
                     if not os.path.exists(item["arquivo"]):
-                        raise FileNotFoundError(f"Arquivo nao encontrado: {item['arquivo']}")
+                        raise FileNotFoundError(f"Arquivo não encontrado: {item['arquivo']}")
 
                 with zipfile.ZipFile(destino, 'w', zipfile.ZIP_DEFLATED) as zip_file:
                     imagens_copy = []
@@ -1408,7 +1408,7 @@ class MainFrame(wx.Frame):
     def on_carregar_projeto(self, event):
         if self.imagens or self.audios:
             confirm = wx.MessageBox(
-                "Deseja carregar o projeto? As midias e audios atuais serao substituidos.",
+                "Deseja carregar o projeto? As mídias e áudios atuais serão substituídos.",
                 "Confirmar Carregamento",
                 wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION
             )
@@ -1418,7 +1418,7 @@ class MainFrame(wx.Frame):
         with wx.FileDialog(
             self,
             "Carregar projeto",
-            wildcard="Projeto de Video (*.wvp)|*.wvp",
+            wildcard="Projeto de Vídeo (*.wvp)|*.wvp",
             style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST
         ) as dlg:
             if dlg.ShowModal() != wx.ID_OK:
@@ -1466,7 +1466,7 @@ class MainFrame(wx.Frame):
                             resolved_path = zip_file.extract(zip_path, temp_dir)
                             extracted_any = True
                         else:
-                            raise FileNotFoundError(f"Nao foi possivel encontrar o arquivo original ou zip_path.")
+                            raise FileNotFoundError(f"Não foi possível encontrar o arquivo original ou zip_path.")
                         
                         item_copy = item.copy()
                         item_copy["arquivo"] = resolved_path
@@ -1485,7 +1485,7 @@ class MainFrame(wx.Frame):
                             resolved_path = zip_file.extract(zip_path, temp_dir)
                             extracted_any = True
                         else:
-                            raise FileNotFoundError(f"Nao foi possivel encontrar o arquivo original ou zip_path.")
+                            raise FileNotFoundError(f"Não foi possível encontrar o arquivo original ou zip_path.")
                             
                         item_copy = item.copy()
                         item_copy["arquivo"] = resolved_path
