@@ -21,13 +21,44 @@ from moviepy import (
     CompositeAudioClip
 )
 
+# Opcoes de ajuste de imagem no quadro final.
+# (rotulo exibido, chave salva no item, posicao do MoviePy)
+# "preencher" (padrao) redimensiona a imagem mantendo a proporcao para
+# preencher o quadro e a centraliza. As demais opcoes mantem a imagem no
+# tamanho original, apenas posicionando-a no quadro.
+OPCOES_AJUSTE_IMAGEM = [
+    ("Preencher quadro", "preencher", None),
+    ("Centralizar", "centralizar", "center"),
+    ("Superior esquerdo", "sup_esq", ("left", "top")),
+    ("Superior centro", "sup_centro", ("center", "top")),
+    ("Superior direito", "sup_dir", ("right", "top")),
+    ("Centro esquerdo", "centro_esq", ("left", "center")),
+    ("Centro direito", "centro_dir", ("right", "center")),
+    ("Inferior esquerdo", "inf_esq", ("left", "bottom")),
+    ("Inferior centro", "inf_centro", ("center", "bottom")),
+    ("Inferior direito", "inf_dir", ("right", "bottom")),
+]
+
+ROTULOS_AJUSTE_IMAGEM = [op[0] for op in OPCOES_AJUSTE_IMAGEM]
+CHAVES_AJUSTE_IMAGEM = [op[1] for op in OPCOES_AJUSTE_IMAGEM]
+POSICAO_AJUSTE_IMAGEM = {op[1]: op[2] for op in OPCOES_AJUSTE_IMAGEM}
+
+
+def indice_ajuste_imagem(chave):
+    try:
+        return CHAVES_AJUSTE_IMAGEM.index(chave)
+    except ValueError:
+        return 0
+
+
 class EditFrame(wx.Frame):
 
     def __init__(self, parent, item, index, item_type):
+        altura_frame = 460 if item_type == "imagem" else 250
         super().__init__(
             parent,
             title=f"Editar Mídia - {os.path.basename(item['arquivo'])}",
-            size=(450, 250),
+            size=(460, altura_frame),
             style=wx.DEFAULT_FRAME_STYLE | wx.FRAME_FLOAT_ON_PARENT
         )
         self.parent = parent
@@ -79,6 +110,21 @@ class EditFrame(wx.Frame):
             self.inputs[key] = txt
 
         sizer_principal.Add(grid, 1, wx.EXPAND | wx.ALL, 15)
+
+        if self.item_type == "imagem":
+            self.radio_ajuste = wx.RadioBox(
+                panel,
+                label="A&juste da Imagem no quadro",
+                choices=ROTULOS_AJUSTE_IMAGEM,
+                majorDimension=2,
+                style=wx.RA_SPECIFY_COLS
+            )
+            ajuste_atual = self.item.get("ajuste_imagem", "preencher")
+            self.radio_ajuste.SetSelection(indice_ajuste_imagem(ajuste_atual))
+            sizer_principal.Add(
+                self.radio_ajuste, 0,
+                wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 15
+            )
 
         # Buttons
         linha_botoes = wx.BoxSizer(wx.HORIZONTAL)
@@ -202,6 +248,9 @@ class EditFrame(wx.Frame):
 
             self.item["duracao"] = duracao
             self.item["inicio_destino"] = inicio_destino
+            self.item["ajuste_imagem"] = CHAVES_AJUSTE_IMAGEM[
+                self.radio_ajuste.GetSelection()
+            ]
 
         elif self.item_type == "audio":
             inicio_audio_str = self.inputs["inicio"].GetValue().strip()
@@ -318,10 +367,20 @@ class MainFrame(wx.Frame):
         linha_tempo.Add(self.txt_tempo, 1, wx.ALL, 5)
         linha_tempo.Add(lbl_imagem_destino, 0, wx.ALL | wx.CENTER, 5)
         linha_tempo.Add(self.txt_imagem_destino, 1, wx.ALL, 5)
-        
+
         self.btn_adicionar = wx.Button(painel, label="&Adicionar à Lista")
         linha_tempo.Add(self.btn_adicionar, 0, wx.ALL, 5)
         sizer_principal.Add(linha_tempo, 0, wx.EXPAND)
+
+        self.radio_ajuste_imagem = wx.RadioBox(
+            painel,
+            label="A&juste da Imagem no quadro",
+            choices=ROTULOS_AJUSTE_IMAGEM,
+            majorDimension=5,
+            style=wx.RA_SPECIFY_COLS
+        )
+        self.radio_ajuste_imagem.SetSelection(0)
+        sizer_principal.Add(self.radio_ajuste_imagem, 0, wx.EXPAND | wx.ALL, 5)
 
         # --- Secao de Videos ---
         linha_video = wx.BoxSizer(wx.HORIZONTAL)
@@ -790,12 +849,15 @@ class MainFrame(wx.Frame):
             )
             return
 
+        ajuste_imagem = CHAVES_AJUSTE_IMAGEM[self.radio_ajuste_imagem.GetSelection()]
+
         self.imagens.append(
             {
                 "tipo": "imagem",
                 "arquivo": caminho,
                 "duracao": duracao,
-                "inicio_destino": inicio_destino
+                "inicio_destino": inicio_destino,
+                "ajuste_imagem": ajuste_imagem
             }
         )
 
@@ -804,6 +866,7 @@ class MainFrame(wx.Frame):
         self.txt_imagem.Clear()
         self.txt_tempo.Clear()
         self.txt_imagem_destino.Clear()
+        self.radio_ajuste_imagem.SetSelection(0)
 
     def on_adicionar_video_fluxo(self, event):
         caminho = self.txt_video_fluxo.GetValue().strip()
@@ -989,6 +1052,23 @@ class MainFrame(wx.Frame):
 
         return clip
 
+    def ajustar_ao_quadro(self, clip, largura, altura):
+        # Redimensiona o clipe para caber no quadro (largura x altura)
+        # preservando a proporcao e o centraliza. Sem isso, midias menores
+        # que o quadro final ficam ancoradas no canto superior esquerdo
+        # (posicao padrao do CompositeVideoClip) sobre o fundo preto.
+        escala = min(largura / clip.w, altura / clip.h)
+        novo_w = max(2, int(round(clip.w * escala)))
+        novo_h = max(2, int(round(clip.h * escala)))
+        # Dimensoes pares para o codec libx264 (yuv420p).
+        novo_w -= novo_w % 2
+        novo_h -= novo_h % 2
+
+        if (novo_w, novo_h) != (clip.w, clip.h):
+            clip = clip.resized(new_size=(novo_w, novo_h))
+
+        return clip.with_position("center")
+
     def criar_video(self, destino, imagens=None, fps_valor=None):
 
         clips = []
@@ -1040,6 +1120,23 @@ class MainFrame(wx.Frame):
             altura = max(altura, clip.h)
 
             clips.append(clip)
+
+        # Normaliza cada clipe ao tamanho do quadro final. Imagens com ajuste
+        # "preencher" (padrao) sao redimensionadas mantendo a proporcao para
+        # preencher o quadro. As demais opcoes mantem a imagem no tamanho
+        # original, apenas posicionando-a (centro, cantos ou bordas). Sem isso,
+        # midias menores ficam presas no canto sobre o fundo preto.
+        clips_ajustados = []
+        for item, clip in zip(itens, clips):
+            chave_ajuste = item.get("ajuste_imagem", "preencher")
+            eh_imagem = item.get("tipo", "imagem") == "imagem"
+            if eh_imagem and chave_ajuste != "preencher":
+                posicao = POSICAO_AJUSTE_IMAGEM.get(chave_ajuste, "center")
+                clip = clip.with_position(posicao)
+            else:
+                clip = self.ajustar_ao_quadro(clip, largura, altura)
+            clips_ajustados.append(clip)
+        clips = clips_ajustados
 
         fundo = ColorClip(
             size=(largura, altura),
