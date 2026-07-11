@@ -49,18 +49,29 @@ POSICAO_AJUSTE_IMAGEM = {op[1]: op[2] for op in OPCOES_AJUSTE_IMAGEM}
 # "maior_altura_largura": o quadro usa a maior largura e a maior
 #   altura encontradas entre as midias, calculadas de forma independente (pode
 #   nao corresponder a resolucao de nenhuma midia individual).
-# "maior_midia": o quadro usa a resolucao exata da maior midia (por area). Com
-#   o ajuste "Preencher quadro" a midia e esticada ate o tamanho da maior midia.
-# "tela_inteira": o quadro usa a resolucao da tela. Com o ajuste "Preencher
-#   quadro" a midia e esticada ate ocupar a tela inteira.
+# "maior_midia": o quadro usa a resolucao exata da maior midia (por area).
+# "full_hd_horizontal"/"full_hd_vertical": o quadro usa uma resolucao padrao de
+#   proporcao 16:9 (1920x1080) ou 9:16 (1080x1920). Diferente da resolucao da
+#   tela de quem gera, essas proporcoes padrao fazem o video cobrir a area de
+#   exibicao na maioria dos dispositivos (o player escala o arquivo na
+#   reproducao), como os videos comuns.
+# Em qualquer modo, o ajuste "Preencher quadro" estica a midia ate ocupar todo
+# o quadro final.
 OPCOES_TAMANHO_QUADRO = [
     ("Maior largura e maior altura entre as mídias", "maior_altura_largura"),
     ("Tamanho da maior mídia", "maior_midia"),
-    ("Tela inteira", "tela_inteira"),
+    ("Full HD horizontal (1920×1080)", "full_hd_horizontal"),
+    ("Full HD vertical (1080×1920)", "full_hd_vertical"),
 ]
 
 ROTULOS_TAMANHO_QUADRO = [op[0] for op in OPCOES_TAMANHO_QUADRO]
 CHAVES_TAMANHO_QUADRO = [op[1] for op in OPCOES_TAMANHO_QUADRO]
+
+# Resolucoes fixas (largura, altura) dos modos de proporcao padrao.
+RESOLUCOES_PADRAO = {
+    "full_hd_horizontal": (1920, 1080),
+    "full_hd_vertical": (1080, 1920),
+}
 
 
 def indice_ajuste_imagem(chave):
@@ -1120,25 +1131,8 @@ class MainFrame(wx.Frame):
 
         return clip
 
-    def ajustar_ao_quadro(self, clip, largura, altura):
-        # Redimensiona o clipe para caber no quadro (largura x altura)
-        # preservando a proporcao e o centraliza. Sem isso, midias menores
-        # que o quadro final ficam ancoradas no canto superior esquerdo
-        # (posicao padrao do CompositeVideoClip) sobre o fundo preto.
-        escala = min(largura / clip.w, altura / clip.h)
-        novo_w = max(2, int(round(clip.w * escala)))
-        novo_h = max(2, int(round(clip.h * escala)))
-        # Dimensoes pares para o codec libx264 (yuv420p).
-        novo_w -= novo_w % 2
-        novo_h -= novo_h % 2
-
-        if (novo_w, novo_h) != (clip.w, clip.h):
-            clip = clip.resized(new_size=(novo_w, novo_h))
-
-        return clip.with_position("center")
-
     def criar_video(self, destino, imagens=None, fps_valor=None,
-                    modo_quadro=None, tamanho_tela=None):
+                    modo_quadro=None):
 
         clips = []
         inicio_destino = 0
@@ -1215,32 +1209,30 @@ class MainFrame(wx.Frame):
         # de forma independente no laco acima.
         if modo_quadro == "maior_midia":
             largura, altura = maior_largura, maior_altura
-        elif modo_quadro == "tela_inteira" and tamanho_tela:
-            largura, altura = int(tamanho_tela[0]), int(tamanho_tela[1])
+        elif modo_quadro in RESOLUCOES_PADRAO:
+            largura, altura = RESOLUCOES_PADRAO[modo_quadro]
 
         # Garante dimensoes pares para o codec libx264 (yuv420p).
         largura = max(2, largura - (largura % 2))
         altura = max(2, altura - (altura % 2))
 
         # Normaliza cada clipe ao tamanho do quadro final. Midias (imagens ou
-        # videos) com ajuste "preencher" (padrao) sao redimensionadas mantendo
-        # a proporcao para preencher o quadro. As demais opcoes mantem a midia
-        # no tamanho original, apenas posicionando-a (centro, cantos ou bordas).
-        # Sem isso, midias menores ficam presas no canto sobre o fundo preto.
+        # videos) com ajuste "preencher" (padrao) sao esticadas ate ocupar todo
+        # o quadro, em qualquer modo de tamanho do quadro. As demais opcoes
+        # mantem a midia no tamanho original, apenas posicionando-a (centro,
+        # cantos ou bordas). Sem isso, midias menores ficam presas no canto
+        # sobre o fundo preto.
         clips_ajustados = []
         for item, clip in zip(itens, clips):
             chave_ajuste = item.get("ajuste_imagem", "preencher")
             if chave_ajuste != "preencher":
                 posicao = POSICAO_AJUSTE_IMAGEM.get(chave_ajuste, "center")
                 clip = clip.with_position(posicao)
-            elif modo_quadro in ("maior_midia", "tela_inteira"):
-                # "Preencher" nestes modos estica a midia para ocupar todo o
-                # quadro (ate o tamanho da maior midia ou a tela inteira).
+            else:
+                # "Preencher" estica a midia para ocupar todo o quadro final.
                 if (clip.w, clip.h) != (largura, altura):
                     clip = clip.resized(new_size=(largura, altura))
                 clip = clip.with_position("center")
-            else:
-                clip = self.ajustar_ao_quadro(clip, largura, altura)
             clips_ajustados.append(clip)
         clips = clips_ajustados
 
@@ -1311,12 +1303,11 @@ class MainFrame(wx.Frame):
 
         imagens = [item.copy() for item in self.imagens]
 
-        # Captura na thread principal (wx nao e thread-safe): modo do quadro e
-        # a resolucao da tela, repassados para a geracao em segundo plano.
+        # Captura na thread principal (wx nao e thread-safe): modo do quadro
+        # repassado para a geracao em segundo plano.
         modo_quadro = CHAVES_TAMANHO_QUADRO[
             self.combo_tamanho_quadro.GetSelection()
         ]
-        tamanho_tela = tuple(wx.GetDisplaySize())
 
         self.btn_salvar_video.Disable()
         self.btn_gerar_final.Disable()
@@ -1332,8 +1323,7 @@ class MainFrame(wx.Frame):
                     destino,
                     imagens=imagens,
                     fps_valor=fps_valor,
-                    modo_quadro=modo_quadro,
-                    tamanho_tela=tamanho_tela
+                    modo_quadro=modo_quadro
                 )
                 wx.CallAfter(
                     self.finalizar_salvar_video,
