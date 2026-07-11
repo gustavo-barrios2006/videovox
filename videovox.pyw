@@ -54,7 +54,12 @@ def indice_ajuste_imagem(chave):
 class EditFrame(wx.Frame):
 
     def __init__(self, parent, item, index, item_type):
-        altura_frame = 460 if item_type == "imagem" else 250
+        if item_type == "imagem":
+            altura_frame = 460
+        elif item_type == "video":
+            altura_frame = 500
+        else:
+            altura_frame = 250
         super().__init__(
             parent,
             title=f"Editar Mídia - {os.path.basename(item['arquivo'])}",
@@ -111,10 +116,15 @@ class EditFrame(wx.Frame):
 
         sizer_principal.Add(grid, 1, wx.EXPAND | wx.ALL, 15)
 
-        if self.item_type == "imagem":
+        if self.item_type in ("imagem", "video"):
+            rotulo_ajuste = (
+                "A&juste da Imagem no quadro"
+                if self.item_type == "imagem"
+                else "A&juste do Vídeo no quadro"
+            )
             self.radio_ajuste = wx.RadioBox(
                 panel,
-                label="A&juste da Imagem no quadro",
+                label=rotulo_ajuste,
                 choices=ROTULOS_AJUSTE_IMAGEM,
                 majorDimension=2,
                 style=wx.RA_SPECIFY_COLS
@@ -222,6 +232,9 @@ class EditFrame(wx.Frame):
             self.item["inicio"] = inicio
             self.item["fim"] = fim
             self.item["inicio_destino"] = inicio_destino
+            self.item["ajuste_imagem"] = CHAVES_AJUSTE_IMAGEM[
+                self.radio_ajuste.GetSelection()
+            ]
 
         elif self.item_type == "imagem":
             tempo = self.inputs["duracao"].GetValue().strip()
@@ -380,6 +393,9 @@ class MainFrame(wx.Frame):
             style=wx.RA_SPECIFY_COLS
         )
         self.radio_ajuste_imagem.SetSelection(0)
+        # Coloca o ajuste na ordem de tabulacao antes do botao "Adicionar a
+        # Lista", para que faca parte das configuracoes daquela midia.
+        self.radio_ajuste_imagem.MoveBeforeInTabOrder(self.btn_adicionar)
         sizer_principal.Add(self.radio_ajuste_imagem, 0, wx.EXPAND | wx.ALL, 5)
 
         # --- Secao de Videos ---
@@ -411,6 +427,19 @@ class MainFrame(wx.Frame):
         self.btn_adicionar_video_fluxo = wx.Button(painel, label="Adicionar Vídeo à Lista")
         linha_video_tempos.Add(self.btn_adicionar_video_fluxo, 0, wx.ALL, 5)
         sizer_principal.Add(linha_video_tempos, 0, wx.EXPAND)
+
+        self.radio_ajuste_video = wx.RadioBox(
+            painel,
+            label="Ajuste do Víde&o no quadro",
+            choices=ROTULOS_AJUSTE_IMAGEM,
+            majorDimension=5,
+            style=wx.RA_SPECIFY_COLS
+        )
+        self.radio_ajuste_video.SetSelection(0)
+        # Coloca o ajuste na ordem de tabulacao antes do botao "Adicionar Video
+        # a Lista", para que faca parte das configuracoes daquela midia.
+        self.radio_ajuste_video.MoveBeforeInTabOrder(self.btn_adicionar_video_fluxo)
+        sizer_principal.Add(self.radio_ajuste_video, 0, wx.EXPAND | wx.ALL, 5)
 
         lbl_lista = wx.StaticText(painel, label="&Lista de Mídias:")
         self.lista = wx.ListBox(painel)
@@ -929,13 +958,16 @@ class MainFrame(wx.Frame):
             wx.MessageBox("O início no vídeo destino não pode ser negativo.", "Erro")
             return
 
+        ajuste_video = CHAVES_AJUSTE_IMAGEM[self.radio_ajuste_video.GetSelection()]
+
         self.imagens.append(
             {
                 "tipo": "video",
                 "arquivo": caminho,
                 "inicio": inicio,
                 "fim": fim,
-                "inicio_destino": inicio_destino
+                "inicio_destino": inicio_destino,
+                "ajuste_imagem": ajuste_video
             }
         )
 
@@ -945,6 +977,7 @@ class MainFrame(wx.Frame):
         self.txt_video_inicio_fluxo.SetValue("0")
         self.txt_video_fim_fluxo.Clear()
         self.txt_video_destino_fluxo.Clear()
+        self.radio_ajuste_video.SetSelection(0)
 
     def on_remover(self, event):
 
@@ -1121,16 +1154,15 @@ class MainFrame(wx.Frame):
 
             clips.append(clip)
 
-        # Normaliza cada clipe ao tamanho do quadro final. Imagens com ajuste
-        # "preencher" (padrao) sao redimensionadas mantendo a proporcao para
-        # preencher o quadro. As demais opcoes mantem a imagem no tamanho
-        # original, apenas posicionando-a (centro, cantos ou bordas). Sem isso,
-        # midias menores ficam presas no canto sobre o fundo preto.
+        # Normaliza cada clipe ao tamanho do quadro final. Midias (imagens ou
+        # videos) com ajuste "preencher" (padrao) sao redimensionadas mantendo
+        # a proporcao para preencher o quadro. As demais opcoes mantem a midia
+        # no tamanho original, apenas posicionando-a (centro, cantos ou bordas).
+        # Sem isso, midias menores ficam presas no canto sobre o fundo preto.
         clips_ajustados = []
         for item, clip in zip(itens, clips):
             chave_ajuste = item.get("ajuste_imagem", "preencher")
-            eh_imagem = item.get("tipo", "imagem") == "imagem"
-            if eh_imagem and chave_ajuste != "preencher":
+            if chave_ajuste != "preencher":
                 posicao = POSICAO_AJUSTE_IMAGEM.get(chave_ajuste, "center")
                 clip = clip.with_position(posicao)
             else:
