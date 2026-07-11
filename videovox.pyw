@@ -44,6 +44,25 @@ CHAVES_AJUSTE_IMAGEM = [op[1] for op in OPCOES_AJUSTE_IMAGEM]
 POSICAO_AJUSTE_IMAGEM = {op[1]: op[2] for op in OPCOES_AJUSTE_IMAGEM}
 
 
+# Opcoes de tamanho do quadro (resolucao) do video final.
+# (rotulo exibido, chave)
+# "maior_altura_largura": o quadro usa a maior largura e a maior
+#   altura encontradas entre as midias, calculadas de forma independente (pode
+#   nao corresponder a resolucao de nenhuma midia individual).
+# "maior_midia": o quadro usa a resolucao exata da maior midia (por area). Com
+#   o ajuste "Preencher quadro" a midia e esticada ate o tamanho da maior midia.
+# "tela_inteira": o quadro usa a resolucao da tela. Com o ajuste "Preencher
+#   quadro" a midia e esticada ate ocupar a tela inteira.
+OPCOES_TAMANHO_QUADRO = [
+    ("Maior largura e maior altura entre as mídias", "maior_altura_largura"),
+    ("Tamanho da maior mídia", "maior_midia"),
+    ("Tela inteira", "tela_inteira"),
+]
+
+ROTULOS_TAMANHO_QUADRO = [op[0] for op in OPCOES_TAMANHO_QUADRO]
+CHAVES_TAMANHO_QUADRO = [op[1] for op in OPCOES_TAMANHO_QUADRO]
+
+
 def indice_ajuste_imagem(chave):
     try:
         return CHAVES_AJUSTE_IMAGEM.index(chave)
@@ -516,6 +535,18 @@ class MainFrame(wx.Frame):
 
         sizer_principal.Add(sizer_audio, 1, wx.EXPAND | wx.ALL, 5)
 
+        # --- Tamanho do quadro do vídeo final ---
+        linha_tamanho_quadro = wx.BoxSizer(wx.HORIZONTAL)
+        lbl_tamanho_quadro = wx.StaticText(painel, label="Tamanho do &Quadro:")
+        self.combo_tamanho_quadro = wx.Choice(
+            painel,
+            choices=ROTULOS_TAMANHO_QUADRO
+        )
+        self.combo_tamanho_quadro.SetSelection(0)
+        linha_tamanho_quadro.Add(lbl_tamanho_quadro, 0, wx.ALL | wx.CENTER, 5)
+        linha_tamanho_quadro.Add(self.combo_tamanho_quadro, 0, wx.ALL, 5)
+        sizer_principal.Add(linha_tamanho_quadro, 0, wx.CENTER)
+
         # --- Ações Finais ---
         linha_final = wx.BoxSizer(wx.HORIZONTAL)
         self.btn_carregar_projeto = wx.Button(painel, label="Carregar &Projeto")
@@ -527,6 +558,10 @@ class MainFrame(wx.Frame):
         linha_final.Add(self.btn_salvar_video, 0, wx.ALL, 5)
         linha_final.Add(self.btn_gerar_final, 0, wx.ALL, 5)
         sizer_principal.Add(linha_final, 0, wx.CENTER)
+
+        # Coloca a selecao de tamanho do quadro na ordem de tabulacao logo antes
+        # do botao "Gerar Vídeo Final", logo apos o grupo de áudio.
+        self.combo_tamanho_quadro.MoveBeforeInTabOrder(self.btn_salvar_video)
 
         painel.SetSizer(sizer_principal)
 
@@ -1102,14 +1137,29 @@ class MainFrame(wx.Frame):
 
         return clip.with_position("center")
 
-    def criar_video(self, destino, imagens=None, fps_valor=None):
+    def criar_video(self, destino, imagens=None, fps_valor=None,
+                    modo_quadro=None, tamanho_tela=None):
 
         clips = []
         inicio_destino = 0
         duracao_total = 0
         largura = 0
         altura = 0
+        # Resolucao da maior midia (por area), usada no modo "maior_midia".
+        maior_area = 0
+        maior_largura = 0
+        maior_altura = 0
         itens = imagens if imagens is not None else self.imagens
+
+        # Modo de tamanho do quadro. Se nao informado (chamada fora da GUI),
+        # le a selecao atual do combo na thread chamadora.
+        if modo_quadro is None:
+            try:
+                modo_quadro = CHAVES_TAMANHO_QUADRO[
+                    self.combo_tamanho_quadro.GetSelection()
+                ]
+            except Exception:
+                modo_quadro = "maior_altura_largura"
 
         # Obtem FPS da interface
         if fps_valor is None:
@@ -1152,7 +1202,25 @@ class MainFrame(wx.Frame):
             largura = max(largura, clip.w)
             altura = max(altura, clip.h)
 
+            area = clip.w * clip.h
+            if area > maior_area:
+                maior_area = area
+                maior_largura = clip.w
+                maior_altura = clip.h
+
             clips.append(clip)
+
+        # Define a resolucao do quadro final conforme o modo escolhido. O modo
+        # padrao ("maior_altura_largura") mantem a maior largura x maior altura calculadas
+        # de forma independente no laco acima.
+        if modo_quadro == "maior_midia":
+            largura, altura = maior_largura, maior_altura
+        elif modo_quadro == "tela_inteira" and tamanho_tela:
+            largura, altura = int(tamanho_tela[0]), int(tamanho_tela[1])
+
+        # Garante dimensoes pares para o codec libx264 (yuv420p).
+        largura = max(2, largura - (largura % 2))
+        altura = max(2, altura - (altura % 2))
 
         # Normaliza cada clipe ao tamanho do quadro final. Midias (imagens ou
         # videos) com ajuste "preencher" (padrao) sao redimensionadas mantendo
@@ -1165,6 +1233,12 @@ class MainFrame(wx.Frame):
             if chave_ajuste != "preencher":
                 posicao = POSICAO_AJUSTE_IMAGEM.get(chave_ajuste, "center")
                 clip = clip.with_position(posicao)
+            elif modo_quadro in ("maior_midia", "tela_inteira"):
+                # "Preencher" nestes modos estica a midia para ocupar todo o
+                # quadro (ate o tamanho da maior midia ou a tela inteira).
+                if (clip.w, clip.h) != (largura, altura):
+                    clip = clip.resized(new_size=(largura, altura))
+                clip = clip.with_position("center")
             else:
                 clip = self.ajustar_ao_quadro(clip, largura, altura)
             clips_ajustados.append(clip)
@@ -1237,6 +1311,13 @@ class MainFrame(wx.Frame):
 
         imagens = [item.copy() for item in self.imagens]
 
+        # Captura na thread principal (wx nao e thread-safe): modo do quadro e
+        # a resolucao da tela, repassados para a geracao em segundo plano.
+        modo_quadro = CHAVES_TAMANHO_QUADRO[
+            self.combo_tamanho_quadro.GetSelection()
+        ]
+        tamanho_tela = tuple(wx.GetDisplaySize())
+
         self.btn_salvar_video.Disable()
         self.btn_gerar_final.Disable()
         self.btn_salvar_projeto.Disable()
@@ -1247,7 +1328,13 @@ class MainFrame(wx.Frame):
 
         def salvar():
             try:
-                self.criar_video(destino, imagens=imagens, fps_valor=fps_valor)
+                self.criar_video(
+                    destino,
+                    imagens=imagens,
+                    fps_valor=fps_valor,
+                    modo_quadro=modo_quadro,
+                    tamanho_tela=tamanho_tela
+                )
                 wx.CallAfter(
                     self.finalizar_salvar_video,
                     True,
@@ -1564,6 +1651,9 @@ class MainFrame(wx.Frame):
                     project_data = {
                         "version": 1,
                         "fps": self.txt_fps.GetValue().strip(),
+                        "tamanho_quadro": CHAVES_TAMANHO_QUADRO[
+                            self.combo_tamanho_quadro.GetSelection()
+                        ],
                         "imagens": imagens_copy,
                         "audios": audios_copy
                     }
@@ -1631,6 +1721,9 @@ class MainFrame(wx.Frame):
                     project_data = json.loads(project_json)
                     
                     fps_val = project_data.get("fps", "30")
+                    tamanho_quadro_val = project_data.get(
+                        "tamanho_quadro", "maior_altura_largura"
+                    )
                     imagens_raw = project_data.get("imagens", [])
                     audios_raw = project_data.get("audios", [])
                     
@@ -1683,6 +1776,11 @@ class MainFrame(wx.Frame):
                     self.imagens = novas_imagens
                     self.audios = novos_audios
                     self.txt_fps.SetValue(str(fps_val))
+                    try:
+                        idx_quadro = CHAVES_TAMANHO_QUADRO.index(tamanho_quadro_val)
+                    except ValueError:
+                        idx_quadro = 0
+                    self.combo_tamanho_quadro.SetSelection(idx_quadro)
                     self.atualizar_lista_midias()
                     self.atualizar_lista_audios()
                     self.atualizar_estado_botoes()
