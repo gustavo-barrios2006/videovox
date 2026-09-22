@@ -18,6 +18,7 @@ from servicos import midias
 from servicos.mixagem import gerar_video_final
 from servicos.renderizacao import criar_video
 from ui.abas.secao_audios import SecaoAudios
+from ui.barra_progresso import BarraProgresso
 from ui.dialogos.editar_item import EditFrame
 from ui.tarefas import executar_em_segundo_plano
 
@@ -175,6 +176,17 @@ class AbaCriar(wx.Panel):
         # do botao "Gerar Vídeo Final", logo apos o grupo de áudio.
         self.combo_tamanho_quadro.MoveBeforeInTabOrder(self.btn_salvar_video)
 
+        # --- Progresso da geracao do video ---
+        # Criada por ultimo, mas fica logo acima dos botoes finais e, na
+        # ordem de tabulacao, logo antes de "Carregar Projeto". So aparece
+        # enquanto um video esta sendo gerado.
+        self.barra_progresso = BarraProgresso(
+            painel,
+            sizer_principal,
+            posicao=sizer_principal.GetItemCount() - 1,
+            antes_de=self.btn_carregar_projeto
+        )
+
         painel.SetSizer(sizer_principal)
 
         # Binds
@@ -211,6 +223,28 @@ class AbaCriar(wx.Panel):
         self.btn_gerar_final.Enable()
         self.btn_salvar_projeto.Enable()
         self.btn_carregar_projeto.Enable()
+
+    def iniciar_geracao(self, operacao):
+        """Bloqueia as acoes e mostra a barra de progresso. Devolve a funcao
+        que a tarefa em segundo plano chama a cada avanco."""
+        # O botao acionado vai ser desabilitado: se o foco esta num dos botoes
+        # de acao, ele passa para a barra em vez de se perder.
+        focado = wx.Window.FindFocus()
+        focar_barra = focado is None or focado in (
+            self.btn_carregar_projeto, self.btn_salvar_projeto,
+            self.btn_salvar_video, self.btn_gerar_final,
+        )
+        self.bloquear_acoes()
+        self.barra_progresso.iniciar(operacao, focar=focar_barra)
+
+        def ao_progredir(progresso):
+            wx.CallAfter(self.barra_progresso.atualizar, progresso)
+
+        return ao_progredir
+
+    def encerrar_geracao(self, botao_origem):
+        self.liberar_acoes()
+        self.barra_progresso.encerrar(devolver_foco_para=botao_origem)
 
     def obter_fps_texto(self):
         return self.txt_fps.GetValue().strip()
@@ -513,7 +547,7 @@ class AbaCriar(wx.Panel):
             self.combo_tamanho_quadro.GetSelection()
         ]
 
-        self.bloquear_acoes()
+        ao_progredir = self.iniciar_geracao("Salvando o vídeo base")
 
         def salvar():
             try:
@@ -521,7 +555,8 @@ class AbaCriar(wx.Panel):
                     destino,
                     imagens,
                     fps_valor,
-                    modo_quadro
+                    modo_quadro,
+                    ao_progredir
                 )
                 wx.CallAfter(
                     self.finalizar_salvar_video,
@@ -541,7 +576,7 @@ class AbaCriar(wx.Panel):
         executar_em_segundo_plano(salvar)
 
     def finalizar_salvar_video(self, sucesso, destino, mensagem):
-        self.liberar_acoes()
+        self.encerrar_geracao(self.btn_salvar_video)
 
         if sucesso:
             self.estado.video_atual = destino
@@ -572,14 +607,14 @@ class AbaCriar(wx.Panel):
                 return
             destino = dlg.GetPath()
 
-        self.bloquear_acoes()
+        ao_progredir = self.iniciar_geracao("Gerando o vídeo final")
 
         video_atual = self.estado.video_atual
         audios = [item.copy() for item in self.estado.audios]
 
         def gerar():
             try:
-                gerar_video_final(video_atual, audios, destino)
+                gerar_video_final(video_atual, audios, destino, ao_progredir)
 
                 wx.CallAfter(self.finalizar_gerar_video, True, "Vídeo final com mixagem concluído!")
 
@@ -594,7 +629,7 @@ class AbaCriar(wx.Panel):
         executar_em_segundo_plano(gerar)
 
     def finalizar_gerar_video(self, sucesso, mensagem):
-        self.liberar_acoes()
+        self.encerrar_geracao(self.btn_gerar_final)
 
         if sucesso:
             wx.MessageBox(mensagem, "Sucesso")

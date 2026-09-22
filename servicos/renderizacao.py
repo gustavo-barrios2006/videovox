@@ -6,7 +6,8 @@ from core.linha_do_tempo import duracao_midia
 from motor import moviepy_adapter as motor
 
 
-def criar_video(destino, itens, fps_valor, modo_quadro):
+def criar_video(destino, itens, fps_valor, modo_quadro, ao_progredir=None):
+    """`ao_progredir(Progresso)`, opcional, acompanha a exportacao."""
 
     clips = []
     tamanhos = []
@@ -45,5 +46,6 @@ def criar_video(destino, itens, fps_valor, modo_quadro):
     ]
 
     motor.exportar_composicao(
-        clips, largura, altura, duracao_total, fps_valor, destino
+        clips, largura, altura, duracao_total, fps_valor, destino,
+        ao_progredir
     )

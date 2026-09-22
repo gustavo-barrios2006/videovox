@@ -15,6 +15,7 @@ from moviepy import (
 )
 
 from core.opcoes import POSICAO_AJUSTE_IMAGEM
+from motor.progresso import logger_para
 
 
 # ---------------------------------------------------------------------------
@@ -77,7 +78,7 @@ def ajustar_ao_quadro(clip, chave_ajuste, largura, altura):
 
 
 def exportar_composicao(clips, largura, altura, duracao_total, fps_valor,
-                        destino):
+                        destino, ao_progredir=None):
     fundo = ColorClip(
         size=(largura, altura),
         color=(0, 0, 0),
@@ -104,7 +105,8 @@ def exportar_composicao(clips, largura, altura, duracao_total, fps_valor,
         fps=fps_valor,
         codec="libx264",
         ffmpeg_params=["-pix_fmt", "yuv420p"],
-        audio_codec="aac"
+        audio_codec="aac",
+        logger=logger_para(ao_progredir, com_audio=bool(clips_audio))
     )
 
     video.close()
@@ -118,7 +120,7 @@ def exportar_composicao(clips, largura, altura, duracao_total, fps_valor,
 # Mixagem de audios sobre um video ja salvo
 # ---------------------------------------------------------------------------
 
-def mixar_audios(video_atual, audios, destino):
+def mixar_audios(video_atual, audios, destino, ao_progredir=None):
     video = VideoFileClip(video_atual)
     clips_audio = []
     audio_clips_abertos = []
@@ -158,7 +160,8 @@ def mixar_audios(video_atual, audios, destino):
         fps=video.fps or 30,
         codec="libx264",
         audio_codec="aac",
-        ffmpeg_params=["-pix_fmt", "yuv420p"]
+        ffmpeg_params=["-pix_fmt", "yuv420p"],
+        logger=logger_para(ao_progredir, com_audio=True)
     )
 
     # Cleanup

@@ -41,6 +41,11 @@ ui  ──►  servicos  ──►  core
 - Tarefas demoradas rodam com `ui.tarefas.executar_em_segundo_plano`; a
   função executada não mexe em widgets e devolve o resultado com
   `wx.CallAfter`. Leia valores de widgets antes de iniciar a tarefa.
+- Progresso: os serviços aceitam `ao_progredir(Progresso)` (`core/progresso.py`);
+  o `motor/progresso.py` converte o progresso do MoviePy (blocos de áudio e
+  quadros de vídeo, contagem exata). Na interface, use `ui/barra_progresso.py`:
+  barra nativa (o NVDA bipa/fala conforme a configuração dele), alcançável pelo
+  Tab, com o nome acessível vindo do rótulo visível logo antes dela.
 - Ao capturar um erro de uma tarefa, registre-o com `infra.log.registrar_erro`
   e mostre `mensagem_com_registro(...)`, que diz ao usuário onde está o
   `erro.txt` (ao lado do executável ou, sem permissão de escrita, em
