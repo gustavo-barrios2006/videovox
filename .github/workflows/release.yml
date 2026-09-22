@@ -1,0 +1,67 @@
+name: Release
+
+# Dispara ao lançar uma tag de versão semver, com ou sem o prefixo "v"
+# (ex.: 1.1.0 ou v1.1.0). Builda o app com PyInstaller (onefile, conforme o
+# videovox.spec), empacota o videovox.exe num zip e publica a release.
+on:
+  push:
+    tags:
+      - "[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller==6.17.0
+
+      - name: Definir a versão a partir da tag
+        # Remove o prefixo "v" opcional: tanto v1.2.3 quanto 1.2.3 viram 1.2.3.
+        run: |
+          $tag = "${{ github.ref_name }}" -replace '^v', ''
+          echo "VERSION=$tag" >> $env:GITHUB_ENV
+
+      - name: Compilar o executável (PyInstaller)
+        run: python -m PyInstaller --clean --noconfirm videovox.spec
+
+      - name: Conferir se o executável foi gerado
+        run: |
+          if (-not (Test-Path "dist/videovox.exe")) {
+            Write-Error "O PyInstaller nao gerou dist/videovox.exe."
+            exit 1
+          }
+
+      - name: Montar o zip da release
+        run: |
+          $zip = "VideoVox_v$env:VERSION.zip"
+          Compress-Archive -Path dist/videovox.exe -DestinationPath $zip
+          $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
+          "$hash  $zip" | Out-File -Encoding ascii "$zip.sha256"
+          Get-ChildItem $zip, "$zip.sha256" | Format-List Name, Length
+
+      - name: Publicar a release
+        # Sem changelog no repositório: as notas são geradas pelo GitHub a
+        # partir dos commits desde a tag anterior.
+        uses: softprops/action-gh-release@v2
+        with:
+          name: VideoVox v${{ env.VERSION }}
+          generate_release_notes: true
+          files: |
+            VideoVox_v*.zip
+            VideoVox_v*.zip.sha256
