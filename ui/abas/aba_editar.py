@@ -156,7 +156,7 @@ class AbaEditar(wx.Panel):
                 if not processar_cortes(
                     video_para_editar, cortes, destino, preset_escolhido
                 ):
-                    wx.CallAfter(wx.MessageBox, "O vídeo resultante ficaria vazio!", "Erro")
+                    wx.CallAfter(self.finalizar_video_vazio)
                     return
 
                 wx.CallAfter(self.finalizar_processamento, True, "Vídeo processado com sucesso.")
@@ -166,10 +166,18 @@ class AbaEditar(wx.Panel):
 
         executar_em_segundo_plano(processar)
 
-    def finalizar_processamento(self, sucesso, mensagem):
+    def liberar_processamento(self):
         if wx.IsBusy():
             wx.EndBusyCursor()
         self.btn_processar_cortes.Enable()
+
+    def finalizar_video_vazio(self):
+        # Nada foi gerado: os cortes cobrem o video inteiro.
+        self.liberar_processamento()
+        wx.MessageBox("O vídeo resultante ficaria vazio!", "Erro")
+
+    def finalizar_processamento(self, sucesso, mensagem):
+        self.liberar_processamento()
 
         if sucesso:
             wx.MessageBox(mensagem, "Sucesso")
