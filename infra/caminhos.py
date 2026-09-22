@@ -1,0 +1,48 @@
+# -*- coding: utf-8 -*-
+"""Pastas usadas pelo app.
+
+A pasta do programa e informada pelo lancador (videovox.pyw) com a pasta dele
+mesmo. No executavel do PyInstaller (onefile) essa pasta e a de extracao
+temporaria (_MEIxxxx), que o PyInstaller apaga ao fechar o app.
+"""
+import os
+import shutil
+import sys
+
+_pasta_programa = None
+
+
+def definir_pasta_programa(pasta):
+    global _pasta_programa
+    _pasta_programa = pasta
+
+
+def pasta_programa():
+    if _pasta_programa is not None:
+        return _pasta_programa
+    return os.path.dirname(os.path.abspath(sys.argv[0]))
+
+
+def pasta_temp_projetos():
+    return os.path.join(pasta_programa(), "temp_projects")
+
+
+def limpar_arquivos_temporarios():
+    try:
+        temp_root = pasta_temp_projetos()
+        if os.path.exists(temp_root):
+            for item in os.listdir(temp_root):
+                item_path = os.path.join(temp_root, item)
+                if os.path.isdir(item_path):
+                    shutil.rmtree(item_path, ignore_errors=True)
+    except Exception as e:
+        print(f"Erro ao limpar temporarios: {e}")
+
+
+def remover_pastas(pastas):
+    try:
+        for temp_dir in pastas:
+            if os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir, ignore_errors=True)
+    except:
+        pass
