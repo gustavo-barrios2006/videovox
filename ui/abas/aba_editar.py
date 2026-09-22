@@ -4,6 +4,7 @@ import wx
 
 from core.opcoes import PRESETS_QUALIDADE
 from core.validacao import validar_numero
+from infra.log import mensagem_com_registro, registrar_erro
 from servicos.cortes import processar_cortes
 from ui.tarefas import executar_em_segundo_plano
 
@@ -162,7 +163,12 @@ class AbaEditar(wx.Panel):
                 wx.CallAfter(self.finalizar_processamento, True, "Vídeo processado com sucesso.")
 
             except Exception as e:
-                wx.CallAfter(self.finalizar_processamento, False, str(e))
+                registro = registrar_erro("Processar cortes")
+                wx.CallAfter(
+                    self.finalizar_processamento,
+                    False,
+                    mensagem_com_registro(str(e), registro)
+                )
 
         executar_em_segundo_plano(processar)
 

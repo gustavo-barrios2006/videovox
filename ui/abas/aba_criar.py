@@ -13,7 +13,7 @@ from core.opcoes import (
     ROTULOS_TAMANHO_QUADRO,
 )
 from core.validacao import validar_numero
-from infra.log import registrar_erro_atual
+from infra.log import mensagem_com_registro, registrar_erro
 from servicos import midias
 from servicos.mixagem import gerar_video_final
 from servicos.renderizacao import criar_video
@@ -530,12 +530,12 @@ class AbaCriar(wx.Panel):
                     "Vídeo criado com sucesso."
                 )
             except Exception as e:
-                registrar_erro_atual()
+                registro = registrar_erro("Salvar vídeo base")
                 wx.CallAfter(
                     self.finalizar_salvar_video,
                     False,
                     None,
-                    str(e)
+                    mensagem_com_registro(str(e), registro)
                 )
 
         executar_em_segundo_plano(salvar)
@@ -584,7 +584,12 @@ class AbaCriar(wx.Panel):
                 wx.CallAfter(self.finalizar_gerar_video, True, "Vídeo final com mixagem concluído!")
 
             except Exception as e:
-                wx.CallAfter(self.finalizar_gerar_video, False, str(e))
+                registro = registrar_erro("Gerar vídeo final")
+                wx.CallAfter(
+                    self.finalizar_gerar_video,
+                    False,
+                    mensagem_com_registro(str(e), registro)
+                )
 
         executar_em_segundo_plano(gerar)
 

@@ -3,3 +3,4 @@ dist/
 __pycache__/
 .pytest_cache/
 temp_projects/
+erro.txt

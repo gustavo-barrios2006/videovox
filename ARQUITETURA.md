@@ -41,6 +41,11 @@ ui  ──►  servicos  ──►  core
 - Tarefas demoradas rodam com `ui.tarefas.executar_em_segundo_plano`; a
   função executada não mexe em widgets e devolve o resultado com
   `wx.CallAfter`. Leia valores de widgets antes de iniciar a tarefa.
+- Ao capturar um erro de uma tarefa, registre-o com `infra.log.registrar_erro`
+  e mostre `mensagem_com_registro(...)`, que diz ao usuário onde está o
+  `erro.txt` (ao lado do executável ou, sem permissão de escrita, em
+  `%LOCALAPPDATA%\VideoVox`). Erros não tratados são registrados
+  automaticamente.
 - A seção de áudio (`ui/abas/secao_audios.py`) cria os controles no mesmo
   painel da aba Criar Videoclipe, e não num subpainel: a ordem de tabulação
   da aba segue a ordem de criação dos controles. Mantenha os mnemônicos (`&`)

@@ -23,6 +23,20 @@ def pasta_programa():
     return os.path.dirname(os.path.abspath(sys.argv[0]))
 
 
+def pasta_do_executavel():
+    """Pasta visivel ao usuario onde o app esta: a do videovox.exe no
+    executavel do PyInstaller, ou a do lancador ao rodar pelo codigo-fonte."""
+    if getattr(sys, "frozen", False):
+        return os.path.dirname(os.path.abspath(sys.executable))
+    return pasta_programa()
+
+
+def pasta_dados_usuario():
+    """Pasta sempre gravavel do usuario (%LOCALAPPDATA%\\VideoVox)."""
+    base = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~")
+    return os.path.join(base, "VideoVox")
+
+
 def pasta_temp_projetos():
     return os.path.join(pasta_programa(), "temp_projects")
 

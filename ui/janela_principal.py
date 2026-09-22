@@ -5,6 +5,7 @@ import wx
 from core.opcoes import indice_tamanho_quadro
 from core.projeto import EstadoProjeto
 from infra import caminhos
+from infra.log import mensagem_com_registro, registrar_erro
 from servicos import projeto_io
 from ui.abas.aba_criar import AbaCriar
 from ui.abas.aba_editar import AbaEditar
@@ -98,7 +99,12 @@ class MainFrame(wx.Frame):
                 )
                 wx.CallAfter(self.finalizar_salvar_projeto, True, "Projeto salvo com sucesso.")
             except Exception as e:
-                wx.CallAfter(self.finalizar_salvar_projeto, False, str(e))
+                registro = registrar_erro("Salvar projeto")
+                wx.CallAfter(
+                    self.finalizar_salvar_projeto,
+                    False,
+                    mensagem_com_registro(str(e), registro)
+                )
 
         executar_em_segundo_plano(salvar)
 
@@ -159,7 +165,12 @@ class MainFrame(wx.Frame):
                 wx.CallAfter(apply_changes)
 
             except Exception as e:
-                wx.CallAfter(self.finalizar_carregar_projeto, False, str(e))
+                registro = registrar_erro("Carregar projeto")
+                wx.CallAfter(
+                    self.finalizar_carregar_projeto,
+                    False,
+                    mensagem_com_registro(str(e), registro)
+                )
 
         executar_em_segundo_plano(carregar)
 
