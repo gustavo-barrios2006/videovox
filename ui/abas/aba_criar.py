@@ -14,12 +14,14 @@ from core.opcoes import (
 )
 from core.validacao import validar_numero
 from infra.log import mensagem_com_registro, registrar_erro
+from servicos import imagens as servico_imagens
 from servicos import midias
 from servicos.mixagem import gerar_video_final
 from servicos.renderizacao import criar_video
 from ui.abas.secao_audios import SecaoAudios
 from ui.barra_progresso import BarraProgresso
 from ui.dialogos.editar_item import EditFrame
+from ui.dialogos.imagens_grandes import perguntar_reducao
 from ui.tarefas import executar_em_segundo_plano
 
 
@@ -520,6 +522,57 @@ class AbaCriar(wx.Panel):
 
             return
 
+        # Imagens grandes demais pesam na memoria da geracao: oferece reduzi-las.
+        grandes = servico_imagens.imagens_grandes(self.estado.imagens)
+        if grandes:
+            escolha = perguntar_reducao(self.janela, grandes)
+            if escolha is None:
+                return
+            caminhos_a_reduzir, caixa = escolha
+            if caminhos_a_reduzir:
+                self.reduzir_imagens_e_continuar(caminhos_a_reduzir, caixa)
+                return
+
+        self.continuar_salvar_video()
+
+    def reduzir_imagens_e_continuar(self, caminhos_a_reduzir, caixa):
+        ao_progredir = self.iniciar_geracao("Reduzindo imagens grandes")
+        reduzidas = {}
+
+        def reduzir():
+            try:
+                servico_imagens.reduzir_imagens(
+                    caminhos_a_reduzir, caixa, ao_progredir,
+                    ao_reduzir=reduzidas.__setitem__
+                )
+                wx.CallAfter(self.finalizar_reducao, reduzidas, None)
+            except Exception as e:
+                registro = registrar_erro("Reduzir imagens")
+                wx.CallAfter(
+                    self.finalizar_reducao,
+                    reduzidas,
+                    mensagem_com_registro(str(e), registro)
+                )
+
+        executar_em_segundo_plano(reduzir)
+
+    def finalizar_reducao(self, reduzidas, erro):
+        self.encerrar_geracao(self.btn_salvar_video)
+
+        # As que ja foram reduzidas passam a ser usadas, mesmo se outra falhou.
+        for item in self.estado.imagens:
+            if item.get("tipo", "imagem") == "imagem" and item["arquivo"] in reduzidas:
+                item["arquivo"] = reduzidas[item["arquivo"]]
+        if reduzidas:
+            self.atualizar_lista_midias()
+
+        if erro:
+            wx.MessageBox(f"Erro ao reduzir as imagens: {erro}", "Erro")
+            return
+
+        self.continuar_salvar_video()
+
+    def continuar_salvar_video(self):
         with wx.FileDialog(
             self.janela,
             "Salvar vídeo",

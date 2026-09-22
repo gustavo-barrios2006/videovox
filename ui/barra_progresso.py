@@ -17,7 +17,7 @@ import sys
 
 import wx
 
-from core.progresso import ETAPA_AUDIO
+from core.progresso import ETAPA_AUDIO, ETAPA_IMAGENS
 
 _EVENT_OBJECT_NAMECHANGE = 0x800C
 _OBJID_CLIENT = -4
@@ -80,10 +80,14 @@ class BarraProgresso:
     def atualizar(self, progresso):
         if not self.ativa:
             return
-        rotulo = (
-            f"{self.operacao}: {_descrever_etapa(progresso)} "
-            f"(etapa {progresso.numero_etapa} de {progresso.total_etapas})"
-        )
+        if progresso.etapa == ETAPA_IMAGENS:
+            atual = min(progresso.feitos + 1, progresso.total)
+            rotulo = f"{self.operacao}: imagem {atual} de {progresso.total}"
+        else:
+            rotulo = (
+                f"{self.operacao}: {_descrever_etapa(progresso)} "
+                f"(etapa {progresso.numero_etapa} de {progresso.total_etapas})"
+            )
         if rotulo != self.rotulo.GetLabel():
             self._definir_rotulo(rotulo)
         self.barra.SetValue(progresso.percentual)

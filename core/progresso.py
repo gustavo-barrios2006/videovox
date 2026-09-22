@@ -3,6 +3,7 @@
 
 ETAPA_AUDIO = "audio"
 ETAPA_VIDEO = "video"
+ETAPA_IMAGENS = "imagens"
 
 
 class Progresso:
